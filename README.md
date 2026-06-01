@@ -24,9 +24,9 @@ Blade files are registered under the `blade` language, which Intelephense ignore
 
 ## Who is this for?
 
-This extension is built for **custom PHP frameworks that use the Blade template engine** (such as the [Spectabile](https://github.com/) framework) where Blade files contain plain PHP calling your own classes and helpers, and you want first-class PHP intelligence in them.
+This extension is built for **custom PHP frameworks that use the Blade template engine** (such as the [Spectabile](https://www.spectabile.ch) framework) where Blade files contain plain PHP calling your own classes and helpers, and you want first-class PHP intelligence in them.
 
-> **Not for stock Laravel.** Laravel projects are better served by Laravel's own tooling (e.g. [Laravel](https://marketplace.visualstudio.com/items?itemName=laravel.vscode-laravel) and [Laravel Blade Snippets](https://marketplace.visualstudio.com/items?itemName=onecentlin.laravel-blade)), which understands Blade directives, facades, views, and routes natively. This bridge is intentionally framework-agnostic — it does not know about Laravel's `@directives`, facades, or container — it simply exposes raw PHP/class intelligence inside Blade markup.
+> **Not for stock Laravel.** Laravel projects are better served by dedicated Laravel tooling (e.g. [Laravel](https://marketplace.visualstudio.com/items?itemName=laravel.vscode-laravel) and community extensions like [Laravel Blade Snippets](https://marketplace.visualstudio.com/items?itemName=onecentlin.laravel-blade)), which understand Blade directives, facades, views, and routes natively. This bridge is intentionally framework-agnostic — it does not know about Laravel's `@directives`, facades, or container — it simply exposes raw PHP/class intelligence inside Blade markup.
 
 ---
 
@@ -66,6 +66,17 @@ On first activation it writes one entry to your global `tailwindCSS.experimental
 | `intelephense.files.exclude` | Folders Intelephense will not index. Keep your project source out of this list so classes resolve in Blade files. |
 
 You do **not** need to add the OS temp folder to any `include`/`exclude` list — the bridge opens each mirror explicitly, so Intelephense picks it up regardless.
+
+For Tailwind completions to appear automatically inside JS strings (without pressing `Ctrl+Space`), ensure `"other"` is enabled in your `[javascript]` quick suggestions:
+
+```jsonc
+"[javascript]": {
+  "editor.quickSuggestions": {
+    "strings": true,
+    "other": "on"
+  }
+}
+```
 
 If `.blade.php` files open as plain `php` (or `html`) instead of `blade`, ensure your Blade grammar's file association is active:
 
