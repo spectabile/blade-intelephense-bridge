@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 512 512">
+  <defs>
+    <clipPath id="round">
+      <rect x="0" y="0" width="512" height="512" rx="96"/>
+    </clipPath>
+  </defs>
+
+  <!-- Spectabile red tile -->
+  <g clip-path="url(#round)">
+    <rect x="0" y="0" width="512" height="512" fill="#BF0000"/>
+
+    <!-- Blade braces  {   } -->
+    <g fill="none" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
+      <!-- left brace { -->
+      <path d="M132 142
+               q-34 0 -34 34
+               v44
+               q0 24 -28 36
+               q28 12 28 36
+               v44
+               q0 34 34 34"/>
+      <!-- right brace } -->
+      <path d="M380 142
+               q34 0 34 34
+               v44
+               q0 24 28 36
+               q-28 12 -28 36
+               v44
+               q0 34 -34 34"/>
+    </g>
+
+    <!-- Spectabile "S", scaled and centered between the braces -->
+    <g transform="translate(256 256) scale(0.60) translate(-256 -256)">
+      <path fill="#FFFFFF" d="M255.5,138.8c0.6,0,1.2-0.1,1.8-0.1c17.7,0,32.2,5.3,43.5,15.9c11.3,10.6,17,24,17,40.3h37
+        l0.6-1.2c0.5-22.8-8.2-42.7-26-59.8c-17.9-17.1-41.9-25.6-72-25.6c-0.6,0-1.2,0-1.8,0V138.8z"/>
+      <path fill="#FFFFFF" d="M268.5,239.2c-23.7-6.3-40.8-13.6-51.4-21.9c-8-6.3-13-13.8-14.9-22.5H163
+        c1.8,17.7,9.9,32.6,24.1,44.8c16.3,14,39,24.6,68.1,31.8c23.5,6.2,39.8,13.6,49.1,22.4c6.7,6.4,11,13.8,12.9,22.4h39.2
+        c-2-17.1-9.3-31.8-22-44C319.3,257.7,297.3,246.7,268.5,239.2z"/>
+      <path fill="#FFFFFF" d="M255.5,372.4c-15.9-0.6-30.2-5.4-43-14.6c-13.6-9.8-20.4-23.6-20.4-41.6h-37l-0.4,1.2
+        c-0.7,25.9,9.6,46.6,30.8,62.1c20.3,14.9,43.7,22.6,70,23.1V372.4z"/>
+    </g>
+  </g>
+</svg>
