@@ -8,6 +8,8 @@
 		"name": "SPECTABILE."
 	},
 	"icon": "icon.png",
+	"license": "MIT",
+	"homepage": "https://github.com/spectabile/blade-intelephense-bridge",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/spectabile/blade-intelephense-bridge"
