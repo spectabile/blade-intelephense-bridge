@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.5
+
+- **Behaviour fix** — removed silent write to user `settings.json`. The extension no longer auto-injects `tailwindCSS.experimental.classRegex` on activation. Users who want Tailwind completions in PHP/JS strings should add the entry manually (documented in README Settings section).
+
 ## 2.8.4
 
 - **README** — screenshot images now use `width` attribute (GitHub strips `style`); images render at capped width without upscaling. Tailwind CSS IntelliSense added to Requirements; `tailwindCSS.experimental.classRegex` setting documented with exact injected value.

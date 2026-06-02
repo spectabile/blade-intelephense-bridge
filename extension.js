@@ -429,31 +429,6 @@ function normalizeItem(it, doc, position) {
 // activate
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Tailwind classRegex bootstrap
-//
-// Injects a classRegex pattern into the global user settings so the Tailwind
-// IntelliSense extension offers class completions inside any string literal in
-// blade/php/js files — not just inside HTML class="..." attributes.
-// Idempotent: skips the write if the pattern is already present.
-// ---------------------------------------------------------------------------
-
-const TW_CLASS_REGEX_PATTERN = ["[\"'`]([^\"'`\\n]+)[\"'`]", "([^\"'`\\n]+)"];
-
-function installTailwindClassRegex() {
-  const twConfig = vscode.workspace.getConfiguration('tailwindCSS');
-  const current = twConfig.inspect('experimental.classRegex');
-  const existing = (current?.globalValue ?? current?.defaultValue ?? []);
-
-  const sentinel = TW_CLASS_REGEX_PATTERN[0];
-  const alreadyInstalled = existing.some(entry =>
-    Array.isArray(entry) ? entry[0] === sentinel : entry === sentinel
-  );
-  if (alreadyInstalled) return;
-
-  const next = [...existing, TW_CLASS_REGEX_PATTERN];
-  twConfig.update('experimental.classRegex', next, vscode.ConfigurationTarget.Global);
-}
 
 /** @param {vscode.ExtensionContext} context */
 async function activate(context) {
@@ -463,8 +438,6 @@ async function activate(context) {
     return;
   }
   if (!intelExt.isActive) await intelExt.activate();
-
-  installTailwindClassRegex();
 
   bladeDiagnostics = vscode.languages.createDiagnosticCollection('blade-bridge');
   context.subscriptions.push(bladeDiagnostics);

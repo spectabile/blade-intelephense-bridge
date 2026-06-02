@@ -44,7 +44,7 @@ This extension is built for **custom PHP frameworks that use the Blade template 
 - **Signature help** — parameter hints as you type call arguments.
 - **PHP diagnostics** — real Intelephense errors and warnings, relayed onto the exact lines of your Blade file.
 - **Import Class command** — right-click a class name → **Blade: Import Class**. If several classes share the name, pick which one to import.
-- **Tailwind class completions in PHP & JS strings** — on activation, the bridge automatically registers a `classRegex` pattern in your global VS Code settings so the [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) extension offers class completions inside any string literal in `.blade.php`, `.php`, and `.js` files — not just inside HTML `class="..."` attributes. Works for `$var = 'flex items-center'`, ternary branches, and JS property assignments alike. Requires Tailwind CSS IntelliSense to be installed; no per-project configuration needed.
+- **Tailwind class completions in PHP & JS strings** — if you use [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) and add a one-line `classRegex` entry to your `settings.json` (see [Settings](#settings)), Tailwind completions fire inside any string literal in `.blade.php`, `.php`, and `.js` files — not just inside HTML `class="..."` attributes. Works for `$var = 'flex items-center'`, ternary branches, and JS property assignments alike.
 
 All intelligence comes from your **already-running** Intelephense and Tailwind IntelliSense instances — no second language server, no duplicate index, no extra memory.
 
@@ -54,7 +54,7 @@ All intelligence comes from your **already-running** Intelephense and Tailwind I
 
 - [**PHP Intelephense**](https://marketplace.visualstudio.com/items?itemName=bmewburn.vscode-intelephense-client) (`bmewburn.vscode-intelephense-client`) must be installed and active. This extension is a bridge to it, not a replacement.
 - A Blade language grammar that registers `.blade.php` under the `blade` language id (for example [Laravel Blade Snippets](https://marketplace.visualstudio.com/items?itemName=onecentlin.laravel-blade) — only its grammar is needed; its Laravel snippets are independent of this bridge).
-- [**Tailwind CSS IntelliSense**](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) (`bradlc.vscode-tailwindcss`) — optional. Required only for Tailwind class completions inside PHP and JS string literals. Once installed, the bridge registers the necessary `classRegex` pattern in your global settings automatically on first activation — no manual configuration needed.
+- [**Tailwind CSS IntelliSense**](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) (`bradlc.vscode-tailwindcss`) — optional. Required only for Tailwind class completions inside PHP and JS string literals. See [Settings](#settings) for the one-line entry to add to your `settings.json`.
 
 ---
 
@@ -64,7 +64,7 @@ This extension has **no settings of its own** — it works out of the box once I
 
 ### `tailwindCSS.experimental.classRegex`
 
-On first activation the bridge automatically writes this entry to your **global** `settings.json`:
+If you use Tailwind CSS and want completions to fire inside PHP or JS string literals — not just inside HTML `class="..."` attributes — add this to your `settings.json`:
 
 ```jsonc
 "tailwindCSS.experimental.classRegex": [
@@ -72,7 +72,7 @@ On first activation the bridge automatically writes this entry to your **global*
 ]
 ```
 
-This is what makes Tailwind completions fire inside any PHP or JS string literal — not just inside HTML `class="..."` attributes. Without it, Tailwind IntelliSense is silent in blade/PHP/JS string contexts. The write is idempotent: if the pattern is already present the extension skips the write. You can inspect or remove it under `tailwindCSS.experimental.classRegex` in your user `settings.json`.
+Without this entry, Tailwind IntelliSense only completes inside HTML attributes and is silent in blade/PHP/JS string contexts. With it, completions work for `$var = 'flex items-center'`, ternary branches, and JS property assignments alike.
 
 Its behaviour does, however, follow a few of **Intelephense's** settings:
 
