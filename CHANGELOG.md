@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.4
+
+- **README** — screenshot images now use `width` attribute (GitHub strips `style`); images render at capped width without upscaling. Tailwind CSS IntelliSense added to Requirements; `tailwindCSS.experimental.classRegex` setting documented with exact injected value.
+
 ## 2.8.3
 
 - **Bug fix** — accepting a class completion no longer opens the Intelephense mirror file in a new tab. The internal navigation command Intelephense attaches to class items was being forwarded verbatim; it now gets stripped from proxied completion items.

@@ -2,7 +2,7 @@
 	"name": "blade-intelephense-bridge",
 	"displayName": "Blade Intelephense Bridge",
 	"description": "Full PHP Intelephense intelligence inside .blade.php files for custom PHP/Blade frameworks — completions, method snippets, auto-import, hover, go-to-definition, and diagnostics.",
-	"version": "2.8.3",
+	"version": "2.8.4",
 	"publisher": "spectabile",
 	"author": {
 		"name": "SPECTABILE."
