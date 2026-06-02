@@ -3,3 +3,7 @@ node_modules/
 *.zip
 _vsix_extracted/
 _bak/
+
+# Claude Code — local config, never publish
+/.claude/
+/.mcp.json
