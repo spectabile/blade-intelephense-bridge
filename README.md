@@ -9,16 +9,20 @@ Blade files are registered under the `blade` language, which Intelephense ignore
 ## Screenshots
 
 **Import an unimported class — auto-inserts the `use` statement**
-![Import class steps](https://github.com/spectabile/blade-intelephense-bridge/raw/HEAD/media/2.1.php-import-class-steps.gif)
+
+<img src="https://github.com/spectabile/blade-intelephense-bridge/raw/HEAD/media/2.1.php-import-class-steps.gif" alt="Import class steps" width="1848">
 
 **Add a method call — snippet with tab stops for each argument**
-![Add method steps](https://github.com/spectabile/blade-intelephense-bridge/raw/HEAD/media/2.2.php-add-method-steps.gif)
+
+<img src="https://github.com/spectabile/blade-intelephense-bridge/raw/HEAD/media/2.2.php-add-method-steps.gif" alt="Add method steps" width="1278">
 
 **Tailwind class completions inside a PHP string**
-![Tailwind CSS in PHP](https://github.com/spectabile/blade-intelephense-bridge/raw/HEAD/media/2.3.php-tailwind-css-steps.gif)
+
+<img src="https://github.com/spectabile/blade-intelephense-bridge/raw/HEAD/media/2.3.php-tailwind-css-steps.gif" alt="Tailwind CSS in PHP" width="1734">
 
 **Tailwind class completions inside a JS string**
-![Tailwind CSS in JS](https://github.com/spectabile/blade-intelephense-bridge/raw/HEAD/media/2.4.js-tailwind-css-steps.gif)
+
+<img src="https://github.com/spectabile/blade-intelephense-bridge/raw/HEAD/media/2.4.js-tailwind-css-steps.gif" alt="Tailwind CSS in JS" width="1588">
 
 ---
 
