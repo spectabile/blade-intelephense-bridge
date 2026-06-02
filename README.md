@@ -24,7 +24,7 @@ Blade files are registered under the `blade` language, which Intelephense ignore
 
 ## Who is this for?
 
-This extension is built for **custom PHP frameworks that use the Blade template engine** (such as the [Spectabile](https://www.spectabile.ch) framework) where Blade files contain plain PHP calling your own classes and helpers, and you want first-class PHP intelligence in them.
+This extension is built for **custom PHP frameworks that use the Blade template engine** where Blade files contain plain PHP calling your own classes and helpers, and you want first-class PHP intelligence in them.
 
 > **Not for stock Laravel.** Laravel projects are better served by dedicated Laravel tooling (e.g. [Laravel](https://marketplace.visualstudio.com/items?itemName=laravel.vscode-laravel) and community extensions like [Laravel Blade Snippets](https://marketplace.visualstudio.com/items?itemName=onecentlin.laravel-blade)), which understand Blade directives, facades, views, and routes natively. This bridge is intentionally framework-agnostic — it does not know about Laravel's `@directives`, facades, or container — it simply exposes raw PHP/class intelligence inside Blade markup.
 
@@ -118,6 +118,4 @@ The mirror is created on open, kept in sync on every edit, and removed on close.
 
 ---
 
-*Built for the Spectabile framework — a custom PHP/Blade stack, not Laravel. Self-contained, no external services.*
-
-*Developed in collaboration with [Claude Code](https://claude.ai/code) (Anthropic) — an AI coding assistant.*
+*Developed in collaboration with [Claude Code](https://claude.ai/code) (Anthropic).*

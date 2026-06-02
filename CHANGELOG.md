@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.2
+
+- **README cleanup** — removed framework-specific references; extension is framework-agnostic. Shortened the closing credit line.
+
 ## 2.8.0
 
 - **Mirrors moved out of the project.** The hidden PHP mirror files are now stored in a single `spectabile-blade-bridge` folder inside the OS temp directory (`%TEMP%` / `/tmp` / `$TMPDIR`) instead of `storage/blade-bridge/` in the workspace. No project footprint, no dependency on any project folder existing, and the same class resolution / diagnostics as before. Cross-platform on Windows, macOS, and Linux. The temp folder is created on first use and removed on deactivate.
