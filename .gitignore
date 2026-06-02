@@ -2,3 +2,4 @@ node_modules/
 *.vsix
 *.zip
 _vsix_extracted/
+_bak/

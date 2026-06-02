@@ -1,0 +1,6 @@
+.gitignore
+.vscodeignore
+icon.svg
+_vsix_extracted/
+_bak/
+*.vsix
