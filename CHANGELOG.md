@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.3
+
+- **Bug fix** — accepting a class completion no longer opens the Intelephense mirror file in a new tab. The internal navigation command Intelephense attaches to class items was being forwarded verbatim; it now gets stripped from proxied completion items.
+- **README** — Tailwind CSS IntelliSense added to Requirements; Settings section now documents the `tailwindCSS.experimental.classRegex` pattern the extension writes automatically, including the exact JSON value.
+- Updated media screenshots.
+
 ## 2.8.2
 
 - **README cleanup** — removed framework-specific references; extension is framework-agnostic. Shortened the closing credit line.

@@ -388,7 +388,9 @@ function normalizeItem(it, doc, position) {
   if (it.filterText !== undefined) item.filterText = it.filterText;
   if (it.preselect !== undefined) item.preselect = it.preselect;
   if (it.commitCharacters !== undefined) item.commitCharacters = it.commitCharacters;
-  if (it.command !== undefined) item.command = it.command;
+  // Strip commands from proxied items — Intelephense attaches internal commands
+  // (e.g. navigation to the class definition) that reference the mirror URI;
+  // forwarding them causes the mirror .php file to open in a new tab.
   if (it.additionalTextEdits) {
     item.additionalTextEdits = it.additionalTextEdits.map(e =>
       vscode.TextEdit.replace(asRange(e.range), e.newText)
