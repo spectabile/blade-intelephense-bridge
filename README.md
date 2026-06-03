@@ -126,7 +126,7 @@ When a Blade file **opens**, its PHP projection is sent to the private server vi
 
 All LSP providers (completions, hover, definition, signature help) look up the virtual URI for the current Blade file, delegate the request to the private server at the same cursor position, and return results verbatim — position remapping is unnecessary because the projection preserves layout exactly.
 
-**Diagnostics** arrive as `textDocument/publishDiagnostics` push notifications from the private server. They are remapped to the real Blade file URI and placed into VS Code's diagnostic collection. The `P1008 / undefinedVariables` diagnostic is suppressed globally — Blade view variables are always injected at runtime by the controller and are never declared in the template.
+**Diagnostics** arrive as `textDocument/publishDiagnostics` push notifications from the private server. They are remapped to the real Blade file URI and placed into VS Code's diagnostic collection. The `P1008 / undefinedVariables` diagnostic is suppressed globally — variables passed in by the controller are never assigned in the template file itself, so Intelephense flags them as undefined and cannot tell them apart from variables declared locally in the template.
 
 ---
 

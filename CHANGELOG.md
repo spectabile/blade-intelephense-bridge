@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.12
+
+- **README** — corrected the description of P1008 suppression: variables can be declared locally in the template as well as injected by the controller.
+
 ## 3.0.11
 
 - **`@php` / `@endphp` directive support** — PHP inside `@php ... @endphp` blocks is now projected into the virtual document alongside `<?php ?>` blocks. Completions, hover, go-to-definition, and diagnostics work inside Blade directives as well as standard PHP tags.
