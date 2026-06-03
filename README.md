@@ -2,7 +2,7 @@
 
 **Full PHP [Intelephense](https://marketplace.visualstudio.com/items?itemName=bmewburn.vscode-intelephense-client) intelligence inside `.blade.php` files** — the same completions, diagnostics, and navigation you get in plain `.php`, now in your Blade templates.
 
-Blade files are registered under the `blade` language, which Intelephense ignores (its language server only attaches to `php`). This extension bridges that gap: it mirrors the PHP regions of your Blade file into a hidden `php` document that Intelephense *does* index, then routes completion, hover, definition, and signature requests through it — so everything just works.
+Blade files are registered under the `blade` language, which Intelephense ignores (its language server only attaches to `php`). This extension bridges that gap: it spawns a **private Intelephense language server** as a child process and feeds it a PHP projection of each Blade file over the LSP protocol — so completions, hover, go-to-definition, signature help, and diagnostics all work inside `.blade.php` exactly as they do in plain `.php` files.
 
 ---
 
@@ -46,7 +46,7 @@ This extension is built for **custom PHP frameworks that use the Blade template 
 - **Import Class command** — right-click a class name → **Blade: Import Class**. If several classes share the name, pick which one to import.
 - **Tailwind class completions in PHP & JS strings** — if you use [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) and add a one-line `classRegex` entry to your `settings.json` (see [Settings](#settings)), Tailwind completions fire inside any string literal in `.blade.php`, `.php`, and `.js` files — not just inside HTML `class="..."` attributes. Works for `$var = 'flex items-center'`, ternary branches, and JS property assignments alike.
 
-All intelligence comes from your **already-running** Intelephense and Tailwind IntelliSense instances — no second language server, no duplicate index, no extra memory.
+PHP intelligence comes from a **private Intelephense instance** that the bridge spawns at activation time — it indexes the same workspace folders and honours the same licence key as your main Intelephense installation. Tailwind completions continue to come from your existing Tailwind CSS IntelliSense instance.
 
 ---
 
@@ -78,7 +78,7 @@ Its behaviour does, however, follow a few of **Intelephense's** settings:
 
 | Intelephense setting | Effect on the bridge |
 | --- | --- |
-| `intelephense.diagnostics.run` | When to surface PHP errors in Blade files. `"onType"` shows them live; `"onSave"` shows them after edits (the bridge saves the mirror on change, so errors still appear). |
+| `intelephense.diagnostics.run` | When to surface PHP errors in Blade files. `"onType"` shows them live; `"onSave"` shows them after edits (the bridge updates the virtual document on every change, so errors still appear either way). |
 | `intelephense.diagnostics.enable` | Master switch for diagnostics. If `false`, no errors are relayed onto Blade files. |
 | `intelephense.files.exclude` | Folders Intelephense will not index. Keep your project source out of this list so classes resolve in Blade files. |
 
@@ -107,13 +107,17 @@ If `.blade.php` files open as plain `php` (or `html`) instead of `blade`, ensure
 
 ## How it works
 
-For each open Blade file the extension maintains a **hidden mirror** — a `.php` file containing only the PHP regions of the template, with non-PHP areas blanked out so **line and column positions stay identical**.
+For each open Blade file the extension maintains a **virtual PHP document** — a projection of the template's PHP regions with non-PHP areas blanked out so **line and column positions stay identical** to the original Blade file. No position translation is ever needed.
 
-> **Where mirrors are stored:** mirrors are written to a single folder named **`spectabile-blade-bridge`** inside your operating system's temp directory (`%TEMP%` on Windows, `/tmp` or `$TMPDIR` on macOS/Linux) — **never inside your project**. The folder is created automatically on first use and removed when the extension deactivates. Nothing is ever written to your repository.
+> **No files are written to disk.** Virtual documents exist only in the private Intelephense server's in-memory document store — they are never written to the filesystem, never appear as editor tabs, and never touch your repository.
 
-Because the mirror is a real `php` document that the extension opens, Intelephense receives it through its normal `didOpen` flow and resolves its symbols against your already-indexed workspace — so completions, hover, and go-to-definition see all your classes. Requests on the Blade file are proxied to the mirror at the same position, and the results — including diagnostics — are mapped back onto the Blade file verbatim.
+At activation the extension locates the Intelephense JS server binary that ships inside the `bmewburn.vscode-intelephense-client` extension and spawns it as a child process. The two processes communicate over JSON-RPC/LSP on stdio with `Content-Length`-framed messages — exactly as VS Code would, but without any editor UI involvement.
 
-The mirror is created on open, kept in sync on every edit, and removed on close. It never appears as a tab.
+When a Blade file **opens**, its PHP projection is sent to the private server via `textDocument/didOpen`. On every **edit**, the full updated projection is sent via `textDocument/didChange`. On **close**, `textDocument/didClose` is sent and the record is discarded.
+
+All LSP providers (completions, hover, definition, signature help) look up the virtual URI for the current Blade file, delegate the request to the private server at the same cursor position, and return results verbatim — position remapping is unnecessary because the projection preserves layout exactly.
+
+**Diagnostics** arrive as `textDocument/publishDiagnostics` push notifications from the private server. They are remapped to the real Blade file URI and placed into VS Code's diagnostic collection. The `P1008 / undefinedVariables` diagnostic is suppressed globally — Blade view variables are always injected at runtime by the controller and are never declared in the template.
 
 ---
 
@@ -128,10 +132,10 @@ The mirror is created on open, kept in sync on every edit, and removed on close.
 
 ## Notes
 
-- Mirror files live in `spectabile-blade-bridge/` inside the **OS temp directory**, outside your project — nothing touches version control, and there is no dependency on any project folder existing.
-- Diagnostics honour your `intelephense.diagnostics.run` setting; the mirror is saved on change so errors surface even under `"onSave"`.
-- Cross-platform: the temp location resolves correctly on Windows, macOS, and Linux.
-- Multi-root workspaces are supported — each Blade file gets its own mirror, keyed by its full path.
+- Virtual PHP documents live only in the private Intelephense server's memory — no files are written to disk, nothing touches version control.
+- Diagnostics honour your `intelephense.diagnostics.run` setting; the virtual document is updated on every edit so errors surface even under `"onSave"`.
+- Cross-platform: the extension works on Windows, macOS, and Linux.
+- Multi-root workspaces are supported — each Blade file gets its own virtual document, keyed by its full path.
 
 ---
 
