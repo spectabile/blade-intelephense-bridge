@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.10
+
+- **Complete rewrite — private LSP server.** Replaced the mirror/temp-file approach with a dedicated Intelephense child process owned by the extension, communicating over stdio. No editor tabs opened, no save dialogs, no Problems-panel pollution from the mirror file.
+- **P1008 false-positive filtering** — "Undefined variable" diagnostics suppressed at the client level (Intelephense sends the code as a string `"P1008"`).
+- **Blade-aware `use`-statement insertion** — detects whether the first `<?php` block is inside Blade template markup (preceded by `@directive` lines). If so, or if no top-level PHP block exists at all, creates `<?php\nuse Foo;\n?>` at line 0. Subsequent imports append after the last existing `use` line with matching indentation.
+- **Method argument snippets** — completion items for callable methods show parameter hints in the dropdown detail line and insert full tab-stop snippets (e.g. `truncate($string, $length, $stopanywhere, $ellipsis)`) on acceptance. Signature parsed from `resolved.documentation` when Intelephense omits `detail` for project-defined methods.
+- **Class auto-import** — overlapping-range error on import fixed; fallback `resolveClassFqns` lookup added for files with no existing `use` lines.
+
 ## 2.8.5
 
 - **Behaviour fix** — removed silent write to user `settings.json`. The extension no longer auto-injects `tailwindCSS.experimental.classRegex` on activation. Users who want Tailwind completions in PHP/JS strings should add the entry manually (documented in README Settings section).
