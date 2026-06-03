@@ -2,7 +2,7 @@
 	"name": "blade-intelephense-bridge",
 	"displayName": "Blade Intelephense Bridge",
 	"description": "Full PHP Intelephense intelligence inside .blade.php files for custom PHP/Blade frameworks — completions, method snippets, auto-import, hover, go-to-definition, and diagnostics.",
-	"version": "3.0.10",
+	"version": "3.0.11",
 	"publisher": "spectabile",
 	"author": {
 		"name": "SPECTABILE."
@@ -51,6 +51,21 @@
 					"group": "1_modification"
 				}
 			]
+		},
+		"configuration": {
+			"title": "Blade Intelephense Bridge",
+			"properties": {
+				"bladeBridge.debug": {
+					"type": "boolean",
+					"default": false,
+					"description": "Show debug output in the Blade Bridge output channel. Enable when troubleshooting."
+				},
+				"bladeBridge.diagnostics.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Report PHP errors and warnings in blade files via the Intelephense language server."
+				}
+			}
 		}
 	},
 	"devDependencies": {

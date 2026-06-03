@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.11
+
+- **`@php` / `@endphp` directive support** — PHP inside `@php ... @endphp` blocks is now projected into the virtual document alongside `<?php ?>` blocks. Completions, hover, go-to-definition, and diagnostics work inside Blade directives as well as standard PHP tags.
+- **Completion timing fix** — a `documentSymbols` round-trip after `textDocument/didOpen` acts as a synchronisation barrier so the server finishes parsing a freshly opened document before the first completion request fires. Eliminates the first-trigger miss on new files.
+- **Extension settings** — added `bladeBridge.debug` (output channel logging, default off) and `bladeBridge.diagnostics.enabled` (toggle PHP diagnostics in Blade files, default on).
+- **README** — Settings section updated to document the two new settings; "Who is this for?" rewritten to welcome Laravel users and clarify the extension's scope.
+
 ## 3.0.10
 
 - **Complete rewrite — private LSP server.** Replaced the mirror/temp-file approach with a dedicated Intelephense child process owned by the extension, communicating over stdio. No editor tabs opened, no save dialogs, no Problems-panel pollution from the mirror file.

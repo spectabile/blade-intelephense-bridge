@@ -30,7 +30,8 @@ const INTELEPHENSE_ID = 'bmewburn.vscode-intelephense-client';
 function extractPhp(text) {
   const lines = text.split('\n');
   const out   = [];
-  let inPhp   = false;
+  let inPhp          = false;
+  let inPhpDirective = false;
 
   for (const line of lines) {
     let processed = '';
@@ -40,14 +41,28 @@ function extractPhp(text) {
     while (col < len) {
       if (!inPhp) {
         const open1 = line.indexOf('<?php', col);
-        const open2 = line.indexOf('<?=',  col);
-        let next = -1, tagLen = 0;
-        if (open1 !== -1 && (open2 === -1 || open1 <= open2)) { next = open1; tagLen = 5; }
-        else if (open2 !== -1) { next = open2; tagLen = 3; }
+        const open2 = line.indexOf('<?=',   col);
+        // Find @php where next char is whitespace, '(' or EOL — avoids matching @phpunit etc.
+        let openAt = -1;
+        { let s = col; while (s < len) { const p = line.indexOf('@php', s); if (p === -1) break; const ch = line[p + 4]; if (!ch || ch === ' ' || ch === '\t' || ch === '(' || ch === '\r') { openAt = p; break; } s = p + 4; } }
+
+        let next = -1, tagLen = 0, directive = false;
+        if      (open1 !== -1 && (open2 === -1 || open1 <= open2) && (openAt === -1 || open1 <= openAt)) { next = open1; tagLen = 5; }
+        else if (open2 !== -1 && (openAt === -1 || open2 <= openAt))                                     { next = open2; tagLen = 3; }
+        else if (openAt !== -1)                                                                           { next = openAt; tagLen = 4; directive = true; }
+
         if (next === -1) break;
-        processed += ' '.repeat(next - col) + line.slice(next, next + tagLen);
+        processed += ' '.repeat(next - col) + (directive ? '<?php' : line.slice(next, next + tagLen));
         col = next + tagLen;
         inPhp = true;
+        if (directive) inPhpDirective = true;
+
+      } else if (inPhpDirective) {
+        // @endphp (7 chars) → '?>     ' preserves column count on that line
+        const close = line.indexOf('@endphp', col);
+        if (close === -1) { processed += line.slice(col); col = len; }
+        else { processed += line.slice(col, close) + '?>     '; col = close + 7; inPhp = false; inPhpDirective = false; }
+
       } else {
         const close = line.indexOf('?>', col);
         if (close === -1) { processed += line.slice(col); col = len; }
@@ -172,10 +187,10 @@ class IntelephenseClient {
       [this._serverPath, '--stdio'],
       { env: { ...process.env }, stdio: ['pipe', 'pipe', 'pipe'] }
     );
-    this._proc.on('error', e => console.error('[BladeBridge] server spawn error:', e.message));
+    this._proc.on('error', e => dbg('[server] spawn error: ' + e.message));
     this._proc.on('exit',  c => {
       this._ready = false;
-      if (c !== 0 && c !== null) console.warn('[BladeBridge] server exited with code', c);
+      if (c !== 0 && c !== null) dbg('[server] exited with code ' + c);
     });
 
     this._transport = new LspTransport(this._proc);
@@ -310,6 +325,11 @@ class IntelephenseClient {
     return this._transport.request('workspace/symbol', { query });
   }
 
+  async documentSymbols(uri) {
+    await this._whenReady();
+    return this._transport.request('textDocument/documentSymbol', { textDocument: { uri } });
+  }
+
   dispose() {
     this._ready = false;
     if (!this._proc) return;
@@ -357,7 +377,14 @@ function findServerPath() {
 const virtualDocs = new Map(); // bladeUri → record
 
 /** @type {IntelephenseClient | null} */
-let lspClient = null;
+let lspClient      = null;
+let outputChannel  = null;
+
+function dbg(msg) {
+  if (vscode.workspace.getConfiguration('bladeBridge').get('debug')) {
+    outputChannel?.appendLine(msg);
+  }
+}
 
 const VIRT_DIR = path.join(os.tmpdir(), 'blade-bridge-virt');
 
@@ -377,6 +404,9 @@ async function syncVirtualDoc(doc) {
     rec = { virtualUri, content: projected };
     virtualDocs.set(key, rec);
     await lspClient.openDoc(virtualUri, projected);
+    // Await a round-trip so the server finishes parsing the new document
+    // before the first completion request fires.
+    await lspClient.documentSymbols(virtualUri).catch(() => {});
   } else if (rec.content !== projected) {
     rec.content = projected;
     await lspClient.changeDoc(rec.virtualUri, projected);
@@ -403,11 +433,16 @@ let bladeDiagnostics = null;
 
 function handleDiagnostics({ uri, diagnostics }) {
   if (!bladeDiagnostics) return;
+  const diagEnabled = vscode.workspace.getConfiguration('bladeBridge').get('diagnostics.enabled', true);
   for (const [bladeKey, rec] of virtualDocs) {
     if (rec.virtualUri !== uri) continue;
     const bladeDoc = vscode.workspace.textDocuments.find(d => d.uri.toString() === bladeKey);
     if (!bladeDoc) {
       bladeDiagnostics.delete(vscode.Uri.parse(bladeKey));
+      return;
+    }
+    if (!diagEnabled) {
+      bladeDiagnostics.delete(bladeDoc.uri);
       return;
     }
     bladeDiagnostics.set(bladeDoc.uri, diagnostics
@@ -678,21 +713,23 @@ function useInsertSpot(doc, fqn) {
     return { line: lastUseLine + 1, indent: leadingWs(lines[lastUseLine]) };
   }
 
-  // 2. No `use` lines yet — find the *first* <?php block that has no Blade directives
-  //    above it (a <?php preceded by @foreach, @component etc. is inside template content).
+  // 2. No `use` lines yet — find the *first* top-level PHP block (<?php or @php directive)
+  //    that has no Blade directives above it.
   for (let i = 0; i < lines.length; i++) {
     const t = lines[i].trim();
-    if (t === '<?php' || t.startsWith('<?php ')) {
-      const hasBladeAbove = lines.slice(0, i).some(l => /^[ \t]*@[a-z]/.test(l));
-      if (!hasBladeAbove) {
-        let indent = '';
-        for (let j = i + 1; j < lines.length; j++) {
-          if (lines[j].trim()) { indent = leadingWs(lines[j]); break; }
-        }
-        return { line: i + 1, indent };
+    const isPhpOpen   = t === '<?php' || t.startsWith('<?php ');
+    const isAtPhpOpen = t === '@php'; // bare @php on its own line
+    if (!isPhpOpen && !isAtPhpOpen) continue;
+
+    const hasBladeAbove = lines.slice(0, i).some(l => /^[ \t]*@[a-z]/.test(l));
+    if (!hasBladeAbove) {
+      let indent = '';
+      for (let j = i + 1; j < lines.length; j++) {
+        if (lines[j].trim()) { indent = leadingWs(lines[j]); break; }
       }
-      break; // First <?php is inside template markup — don't use it
+      return { line: i + 1, indent };
     }
+    break; // First PHP block is inside template markup — don't use it
   }
 
   // 3. Pure Blade template with no top-level PHP block → create one at line 0.
@@ -739,6 +776,9 @@ async function activate(context) {
 
   bladeDiagnostics = vscode.languages.createDiagnosticCollection('blade-bridge');
   context.subscriptions.push(bladeDiagnostics);
+
+  outputChannel = vscode.window.createOutputChannel('Blade Bridge');
+  context.subscriptions.push(outputChannel);
 
   const folders = (vscode.workspace.workspaceFolders ?? []).map(f => ({
     uri:  f.uri.toString(),
@@ -1028,7 +1068,7 @@ async function activate(context) {
       }
 
       vscode.window.showInformationMessage(lines.join('\n'), { modal: true });
-      console.log('[BladeBridge Diagnose]\n' + lines.join('\n'));
+      dbg('[diagnose]\n' + lines.join('\n'));
     })
   );
 }

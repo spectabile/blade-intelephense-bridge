@@ -28,15 +28,19 @@ Blade files are registered under the `blade` language, which Intelephense ignore
 
 ## Who is this for?
 
-This extension is built for **custom PHP frameworks that use the Blade template engine** where Blade files contain plain PHP calling your own classes and helpers, and you want first-class PHP intelligence in them.
+This extension adds PHP class intelligence inside Blade templates — for **any** project that uses Blade, including Laravel.
 
-> **Not for stock Laravel.** Laravel projects are better served by dedicated Laravel tooling (e.g. [Laravel](https://marketplace.visualstudio.com/items?itemName=laravel.vscode-laravel) and community extensions like [Laravel Blade Snippets](https://marketplace.visualstudio.com/items?itemName=onecentlin.laravel-blade)), which understand Blade directives, facades, views, and routes natively. This bridge is intentionally framework-agnostic — it does not know about Laravel's `@directives`, facades, or container — it simply exposes raw PHP/class intelligence inside Blade markup.
+If Intelephense is your PHP engine, it ignores `.blade.php` files by default (the language ID is `blade`, not `php`). This bridge fills that gap: it spawns a private Intelephense instance and routes completions, hover, go-to-definition, and PHP diagnostics into your Blade files.
+
+It is **complementary** to dedicated Laravel tools — the official [Laravel](https://marketplace.visualstudio.com/items?itemName=laravel.vscode-laravel) extension and [Laravel Blade Snippets](https://marketplace.visualstudio.com/items?itemName=onecentlin.laravel-blade) handle Blade directive snippets, route/view/config completions, and facades. This bridge handles **raw PHP class and method intelligence** inside the PHP regions of your templates.
+
+It does **not** provide Blade directive completions (`@if`, `@foreach`, `@component` etc.) or Laravel-specific completions — those belong to the tools above.
 
 ---
 
 ## Features
 
-- **Class & method completion** — `Str::`, `$model->`, your project classes, vendor classes, PHP built-ins.
+- **Class & method completion** — `Str::`, `$model->`, your project classes, vendor classes, PHP built-ins. Works in both `<?php ?>` tags and `@php ... @endphp` directive blocks.
 - **Method-call snippets** — accepting a method inserts its full call with editable argument placeholders: `Str::find($find, $str, $caseSensitive)`, Tab through each.
 - **Unimported-class completion + auto-import** — type a class name (e.g. `Str`) and pick from every matching class in your workspace, shown with its fully-qualified name. Accepting inserts the `use Spectabile\Foundation\Str;` statement automatically, matching your file's existing indentation.
 - **Hover documentation** — full type info and PHPDoc on hover.
@@ -60,11 +64,26 @@ PHP intelligence comes from a **private Intelephense instance** that the bridge 
 
 ## Settings
 
-This extension has **no settings of its own** — it works out of the box once Intelephense, a Blade grammar, and Tailwind CSS IntelliSense are installed.
+### Extension settings
+
+| Setting | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bladeBridge.debug` | boolean | `false` | Write debug output to the **Blade Bridge** output channel. Enable when troubleshooting. |
+| `bladeBridge.diagnostics.enabled` | boolean | `true` | Report PHP errors and warnings in Blade files. Disable if you only want completions without error underlining. |
+
+### Intelephense settings that affect the bridge
+
+The bridge runs its **own** private Intelephense process, so most of your main Intelephense settings do not carry over. The ones that do:
+
+| Intelephense setting | Effect on the bridge |
+| --- | --- |
+| `intelephense.licenceKey` | The bridge reads this key and passes it to its private server, so premium features (full workspace index) work without a separate licence entry. |
+| `intelephense.diagnostics.run` | When to surface PHP errors in Blade files. `"onType"` shows them live; `"onSave"` shows them after saving (the bridge syncs the virtual document on every keystroke either way). |
+| `intelephense.files.exclude` | Folders the private server will not index. Keep your project source out of this list so classes resolve in Blade files. |
 
 ### `tailwindCSS.experimental.classRegex`
 
-If you use Tailwind CSS and want completions to fire inside PHP or JS string literals — not just inside HTML `class="..."` attributes — add this to your `settings.json`:
+Tailwind completions come from the **Tailwind CSS IntelliSense** extension (`bradlc.vscode-tailwindcss`), not from this bridge. If you want those completions to fire inside PHP or JS string literals — not just inside HTML `class="..."` attributes — add this to your `settings.json`:
 
 ```jsonc
 "tailwindCSS.experimental.classRegex": [
@@ -73,16 +92,6 @@ If you use Tailwind CSS and want completions to fire inside PHP or JS string lit
 ```
 
 Without this entry, Tailwind IntelliSense only completes inside HTML attributes and is silent in blade/PHP/JS string contexts. With it, completions work for `$var = 'flex items-center'`, ternary branches, and JS property assignments alike.
-
-Its behaviour does, however, follow a few of **Intelephense's** settings:
-
-| Intelephense setting | Effect on the bridge |
-| --- | --- |
-| `intelephense.diagnostics.run` | When to surface PHP errors in Blade files. `"onType"` shows them live; `"onSave"` shows them after edits (the bridge updates the virtual document on every change, so errors still appear either way). |
-| `intelephense.diagnostics.enable` | Master switch for diagnostics. If `false`, no errors are relayed onto Blade files. |
-| `intelephense.files.exclude` | Folders Intelephense will not index. Keep your project source out of this list so classes resolve in Blade files. |
-
-You do **not** need to add the OS temp folder to any `include`/`exclude` list — the bridge opens each mirror explicitly, so Intelephense picks it up regardless.
 
 For Tailwind completions to appear automatically inside JS strings (without pressing `Ctrl+Space`), ensure `"other"` is enabled in your `[javascript]` quick suggestions:
 
@@ -136,6 +145,12 @@ All LSP providers (completions, hover, definition, signature help) look up the v
 - Diagnostics honour your `intelephense.diagnostics.run` setting; the virtual document is updated on every edit so errors surface even under `"onSave"`.
 - Cross-platform: the extension works on Windows, macOS, and Linux.
 - Multi-root workspaces are supported — each Blade file gets its own virtual document, keyed by its full path.
+
+---
+
+## Contributing
+
+**No issue tracker.** GitHub Issues and Discussions are disabled. This extension is free and open source, but it is a personal tool — developed with the help of AI and shared as-is. It is not community-maintained and there is no support channel. Pull requests with code fixes or improvements are welcome.
 
 ---
 
