@@ -25,13 +25,68 @@ const INTELEPHENSE_ID = 'bmewburn.vscode-intelephense-client';
 // PHP PROJECTION
 // Blanks non-PHP regions so line/column positions stay identical to the
 // blade source — no position mapping needed anywhere downstream.
+//
+// Blade loop directives (@foreach, @for, @while, @forelse) and @if/@elseif/
+// @else/@endif are also translated into real brace-based PHP, not just
+// blanked, so that break/continue inside a nested @php block resolve
+// against an actual loop, and is_array()-style type narrowing inside an
+// @if works, instead of Intelephense analyzing them as if the guard didn't
+// exist. PHP allows a brace opened in one <?php ?> region to close in a
+// later one, so @endforeach/@endif etc. just emit the matching '}'.
+// Translating the directive keyword costs a few columns of drift on that
+// single line (see project memory) — everything on other lines, including
+// @php block bodies, stays exactly aligned.
+//
+// @switch is deliberately NOT covered: PHP's switch-body grammar forbids
+// any content — even a blank line — before the first case/default label,
+// and real Blade @switch blocks always have one for readability. Attempting
+// it would turn currently-fine switch statements into parse errors, which
+// is worse than leaving the (rarer) break-in-switch false positive alone.
+// @if has no such restriction, so it's safe.
 // ═══════════════════════════════════════════════════════════════════════════
+
+const LOOP_KEYWORDS = { foreach: 'foreach', forelse: 'foreach', for: 'for', while: 'while' };
+const DIRECTIVE_KIND = {
+  foreach: 'loopOpen', forelse: 'loopOpen', for: 'loopOpen', while: 'loopOpen',
+  endforeach: 'loopClose', endforelse: 'loopClose', endfor: 'loopClose', endwhile: 'loopClose',
+  if: 'ifOpen', elseif: 'elseifOpen', else: 'elseOpen', endif: 'ifClose',
+};
+const CONTROL_DIRECTIVE_RE = /@(foreach|forelse|endforeach|endforelse|for|endfor|while|endwhile|elseif|else|if|endif)(?![A-Za-z0-9_])/;
+
+function findControlDirective(line, fromCol) {
+  const m = CONTROL_DIRECTIVE_RE.exec(line.slice(fromCol));
+  if (!m) return null;
+  const name = m[1];
+  return { index: fromCol + m.index, len: name.length + 1, name, kind: DIRECTIVE_KIND[name] };
+}
+
+// Finds the '(' that opens a directive's expression (only whitespace allowed before it)
+// and its matching close paren, skipping over parens inside quoted strings.
+function matchDirectiveParens(line, fromCol) {
+  let i = fromCol;
+  while (i < line.length && (line[i] === ' ' || line[i] === '\t')) i++;
+  if (line[i] !== '(') return null;
+
+  const start = i;
+  let depth = 0;
+  for (; i < line.length; i++) {
+    const c = line[i];
+    if (c === "'" || c === '"') {
+      const quote = c; i++;
+      while (i < line.length && line[i] !== quote) { if (line[i] === '\\') i++; i++; }
+    } else if (c === '(') { depth++; }
+    else if (c === ')') { depth--; if (depth === 0) return { start, end: i }; }
+  }
+  return null; // unbalanced / expression spans multiple lines — caller falls back to blanking
+}
 
 function extractPhp(text) {
   const lines = text.split('\n');
   const out   = [];
   let inPhp          = false;
   let inPhpDirective = false;
+  let openLoops      = 0; // count of loopOpen translations still awaiting a matching close
+  let openIfs        = 0; // count of ifOpen translations still awaiting a matching @endif
 
   for (const line of lines) {
     let processed = '';
@@ -45,17 +100,74 @@ function extractPhp(text) {
         // Find @php where next char is whitespace, '(' or EOL — avoids matching @phpunit etc.
         let openAt = -1;
         { let s = col; while (s < len) { const p = line.indexOf('@php', s); if (p === -1) break; const ch = line[p + 4]; if (!ch || ch === ' ' || ch === '\t' || ch === '(' || ch === '\r') { openAt = p; break; } s = p + 4; } }
+        const ctrlDir = findControlDirective(line, col);
 
-        let next = -1, tagLen = 0, directive = false;
-        if      (open1 !== -1 && (open2 === -1 || open1 <= open2) && (openAt === -1 || open1 <= openAt)) { next = open1; tagLen = 5; }
-        else if (open2 !== -1 && (openAt === -1 || open2 <= openAt))                                     { next = open2; tagLen = 3; }
-        else if (openAt !== -1)                                                                           { next = openAt; tagLen = 4; directive = true; }
+        const candidates = [];
+        if (open1  !== -1) candidates.push([open1, 5, 'php']);
+        if (open2  !== -1) candidates.push([open2, 3, 'echo']);
+        if (openAt !== -1) candidates.push([openAt, 4, 'phpDirective']);
+        if (ctrlDir)       candidates.push([ctrlDir.index, ctrlDir.len, ctrlDir.kind]);
+        candidates.sort((a, b) => a[0] - b[0]);
 
-        if (next === -1) break;
-        processed += ' '.repeat(next - col) + (directive ? '<?php' : line.slice(next, next + tagLen));
-        col = next + tagLen;
-        inPhp = true;
-        if (directive) inPhpDirective = true;
+        if (!candidates.length) break;
+        const [next, tagLen, kind] = candidates[0];
+
+        if (kind === 'php' || kind === 'echo') {
+          processed += ' '.repeat(next - col) + line.slice(next, next + tagLen);
+          col = next + tagLen;
+          inPhp = true;
+
+        } else if (kind === 'phpDirective') {
+          processed += ' '.repeat(next - col) + '<?php';
+          col = next + tagLen;
+          inPhp = true;
+          inPhpDirective = true;
+
+        } else if (kind === 'loopClose') {
+          // Only emit a real '}' if a loopOpen actually opened one — otherwise (e.g. the
+          // matching @foreach had a multi-line expression and was left untranslated below)
+          // this would close a brace that was never opened, breaking the whole projection.
+          if (openLoops === 0) { col = next + tagLen; continue; }
+          openLoops--;
+          // Note: '<?php' requires a following whitespace to be recognized as an open tag —
+          // '<?php}' (no space) is a parse error, hence the space before '}'.
+          processed += ' '.repeat(next - col) + '<?php }?>';
+          col = next + tagLen;
+
+        } else if (kind === 'loopOpen') {
+          const parens = matchDirectiveParens(line, next + tagLen);
+          if (!parens) { col = next + tagLen; continue; } // malformed/multi-line expr — leave blank, as before
+          openLoops++;
+          const keyword = LOOP_KEYWORDS[ctrlDir.name];
+          processed += ' '.repeat(next - col) + '<?php ' + keyword + line.slice(parens.start, parens.end + 1) + '{?>';
+          col = parens.end + 1;
+
+        } else if (kind === 'ifOpen') {
+          const parens = matchDirectiveParens(line, next + tagLen);
+          if (!parens) { col = next + tagLen; continue; } // malformed/multi-line expr — leave blank, as before
+          openIfs++;
+          processed += ' '.repeat(next - col) + '<?php if' + line.slice(parens.start, parens.end + 1) + '{?>';
+          col = parens.end + 1;
+
+        } else if (kind === 'elseifOpen') {
+          // Doesn't change openIfs — it closes and reopens the same branch, still awaiting one @endif.
+          if (openIfs === 0) { col = next + tagLen; continue; }
+          const parens = matchDirectiveParens(line, next + tagLen);
+          if (!parens) { col = next + tagLen; continue; }
+          processed += ' '.repeat(next - col) + '<?php } elseif' + line.slice(parens.start, parens.end + 1) + '{?>';
+          col = parens.end + 1;
+
+        } else if (kind === 'elseOpen') {
+          if (openIfs === 0) { col = next + tagLen; continue; }
+          processed += ' '.repeat(next - col) + '<?php } else {?>';
+          col = next + tagLen;
+
+        } else { // ifClose
+          if (openIfs === 0) { col = next + tagLen; continue; }
+          openIfs--;
+          processed += ' '.repeat(next - col) + '<?php }?>';
+          col = next + tagLen;
+        }
 
       } else if (inPhpDirective) {
         // @endphp (7 chars) → '?>     ' preserves column count on that line

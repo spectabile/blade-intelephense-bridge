@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.14
+
+- **Bug fix — false-positive type-narrowing diagnostics (e.g. P1006 "Expected iterable|object") inside `@if`.** Same root cause as 3.0.13's break/continue fix, different symptom: `@if`/`@elseif`/`@else`/`@endif` were only blanked in the projection, so an `is_array($x)`-style guard was invisible to Intelephense and any code nested inside it (including a `@foreach` over `$x`) was analyzed as if the guard didn't exist. These directives are now translated into real brace-based PHP the same way loop directives were, so control-flow/type narrowing works correctly for guarded code.
+
+## 3.0.13
+
+- **Bug fix — false-positive "break/continue outside loop" diagnostic (P1104).** Blade loop directives (`@foreach`, `@for`, `@while`, `@forelse` and their `@end*` closers) are now translated into real brace-based PHP in the projection, not just blanked. `continue`/`break` used inside a nested `@php` block (or raw `<?php ?>` tags) now resolve against an actual loop in the mirror instead of tripping Intelephense's diagnostic. `@switch` is deliberately left untouched — PHP's switch-body grammar forbids any content before the first `case`/`default` label, and real Blade `@switch` blocks always have a blank line there, so translating it would trade a rare false positive for a guaranteed parse error.
+
 ## 3.0.12
 
 - **README** — corrected the description of P1008 suppression: variables can be declared locally in the template as well as injected by the controller.
